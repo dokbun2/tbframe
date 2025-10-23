@@ -1,0 +1,27 @@
+{
+  "name": "toolbeeframe",
+  "version": "1.0.0",
+  "description": "비디오 프레임 추출 도구",
+  "main": "script.js",
+  "scripts": {
+    "start": "open index.html",
+    "proxy": "node proxy-server.js",
+    "dev": "npx live-server --port=8080"
+  },
+  "keywords": [
+    "video",
+    "frame",
+    "extraction",
+    "tool"
+  ],
+  "author": "TOOLBEE",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

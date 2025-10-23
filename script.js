@@ -32,13 +32,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
-    // 업로드 영역 클릭
-    uploadArea.addEventListener('click', () => {
-        videoInput.click();
+    // 업로드 영역 클릭 - URL 입력 영역 제외
+    uploadArea.addEventListener('click', (e) => {
+        // URL 입력 섹션 클릭시 파일 선택 방지
+        if (!e.target.closest('.url-input-section')) {
+            videoInput.click();
+        }
     });
 
     // 파일 선택
     videoInput.addEventListener('change', handleFileSelect);
+
+    // URL 입력 관련 이벤트
+    const urlInput = document.getElementById('urlInput');
+    const loadUrlBtn = document.getElementById('loadUrlBtn');
+
+    loadUrlBtn.addEventListener('click', handleUrlLoad);
+
+    // Enter 키로 URL 로드
+    urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleUrlLoad();
+        }
+    });
 
     // 드래그 앤 드롭
     uploadArea.addEventListener('dragover', (e) => {
@@ -140,11 +156,112 @@ function handleFile(file) {
     }
 
     const url = URL.createObjectURL(file);
+    loadVideo(url, file.name);
+}
+
+// URL 로드 처리
+async function handleUrlLoad() {
+    const urlInput = document.getElementById('urlInput');
+    const loadUrlBtn = document.getElementById('loadUrlBtn');
+    const url = urlInput.value.trim();
+
+    if (!url) {
+        showToast('URL을 입력해주세요.');
+        return;
+    }
+
+    // URL 유효성 검사
+    if (!isValidUrl(url)) {
+        showToast('올바른 URL을 입력해주세요.');
+        return;
+    }
+
+    // 로딩 상태 표시
+    const originalBtnText = loadUrlBtn.textContent;
+    loadUrlBtn.disabled = true;
+    loadUrlBtn.innerHTML = '<span class="loading-spinner"></span>로딩 중...';
+
+    try {
+        // YouTube, Vimeo 등 플랫폼 확인
+        const videoUrl = await processVideoUrl(url);
+
+        // 비디오 로드
+        loadVideo(videoUrl, getFileNameFromUrl(videoUrl));
+
+        // 입력 필드 초기화
+        urlInput.value = '';
+
+        showToast('비디오 로드 성공!');
+    } catch (error) {
+        console.error('URL 로드 실패:', error);
+
+        // 에러 메시지 표시
+        if (error.message) {
+            showToast(error.message);
+        } else {
+            showToast('비디오 로드에 실패했습니다. 다른 URL을 시도해보세요.');
+        }
+    } finally {
+        // 버튼 상태 복원
+        loadUrlBtn.disabled = false;
+        loadUrlBtn.textContent = originalBtnText;
+    }
+}
+
+// 비디오 로드 공통 함수
+function loadVideo(url, fileName = 'video') {
     videoPlayer.src = url;
 
     // 비디오 설정 최적화
     videoPlayer.preload = 'auto';
     videoPlayer.muted = true; // 자동재생 허용을 위해 음소거
+    videoPlayer.crossOrigin = 'anonymous'; // CORS 지원
+
+    // 에러 처리
+    videoPlayer.onerror = (e) => {
+        console.error('비디오 로드 오류:', e);
+
+        const error = videoPlayer.error;
+        let errorMessage = '비디오를 로드할 수 없습니다.';
+
+        // 에러 코드별 메시지
+        if (error) {
+            switch (error.code) {
+                case 1: // MEDIA_ERR_ABORTED
+                    errorMessage = '비디오 로드가 중단되었습니다.';
+                    break;
+                case 2: // MEDIA_ERR_NETWORK
+                    errorMessage = '네트워크 오류가 발생했습니다. URL을 확인하거나 다시 시도해주세요.';
+                    break;
+                case 3: // MEDIA_ERR_DECODE
+                    errorMessage = '비디오 디코딩 오류가 발생했습니다. 지원되지 않는 형식일 수 있습니다.';
+                    break;
+                case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                    errorMessage = '지원되지 않는 비디오 형식입니다. MP4, WebM, OGG 형식을 사용해주세요.';
+                    break;
+            }
+        }
+
+        // CORS 에러 가능성 체크
+        if (url.startsWith('http') && !url.startsWith(window.location.origin)) {
+            errorMessage += '\n\nCORS 정책으로 인한 오류일 수 있습니다. 다음 방법을 시도해보세요:\n';
+            errorMessage += '1. 비디오 파일의 직접 URL 사용 (.mp4, .webm 등)\n';
+            errorMessage += '2. 파일을 직접 업로드\n';
+            errorMessage += '3. CORS가 허용된 서버의 비디오 사용';
+        }
+
+        showToast(errorMessage);
+
+        // UI 원래대로 복원
+        uploadArea.style.display = 'block';
+        videoContainer.style.display = 'none';
+        controlPanel.style.display = 'none';
+        frameGallery.style.display = 'none';
+
+        // 입력 필드 초기화
+        const urlInput = document.getElementById('urlInput');
+        if (urlInput) urlInput.value = '';
+    };
 
     // UI 업데이트
     uploadArea.style.display = 'none';
@@ -152,6 +269,189 @@ function handleFile(file) {
     controlPanel.style.display = 'block';
 
     showToast('비디오 로드 중...');
+}
+
+// URL 유효성 검사
+function isValidUrl(string) {
+    try {
+        const url = new URL(string);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch (_) {
+        return false;
+    }
+}
+
+// 비디오 URL 처리 (YouTube, Vimeo, Dropbox 등)
+async function processVideoUrl(url) {
+    // Dropbox URL 처리
+    if (url.includes('dropbox.com')) {
+        return processDropboxUrl(url);
+    }
+
+    // Google Drive URL 처리
+    if (url.includes('drive.google.com')) {
+        return processGoogleDriveUrl(url);
+    }
+
+    // YouTube URL 처리
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        return extractYouTubeDirectUrl(url);
+    }
+
+    // Vimeo URL 처리
+    if (url.includes('vimeo.com')) {
+        return extractVimeoDirectUrl(url);
+    }
+
+    // 직접 비디오 파일 URL
+    if (isDirectVideoUrl(url)) {
+        return url;
+    }
+
+    // 프록시 서버 사용 (CORS 우회)
+    return useProxyServer(url);
+}
+
+// Dropbox URL 처리
+function processDropboxUrl(url) {
+    // Dropbox 공유 링크를 직접 다운로드 링크로 변환
+    let directUrl = url;
+
+    // www.dropbox.com을 dl.dropboxusercontent.com으로 변경
+    if (url.includes('www.dropbox.com')) {
+        directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+        // dl=0 파라미터 제거
+        directUrl = directUrl.replace(/[?&]dl=0/, '');
+    }
+    // 또는 dl=0을 raw=1로 변경
+    else if (url.includes('dl=0')) {
+        directUrl = url.replace('dl=0', 'raw=1');
+    }
+    // 이미 dl=1이 있으면 그대로 사용
+    else if (!url.includes('dl=1') && !url.includes('raw=1')) {
+        // raw=1 파라미터 추가
+        directUrl += (url.includes('?') ? '&' : '?') + 'raw=1';
+    }
+
+    console.log('Dropbox URL 변환:', directUrl);
+    showToast('Dropbox 비디오를 로드합니다...');
+
+    // CORS 문제를 피하기 위해 프록시 사용 고려
+    // Dropbox도 CORS 제한이 있을 수 있음
+    if (!directUrl.includes('dl.dropboxusercontent.com')) {
+        console.log('Dropbox CORS 우회를 위해 프록시 사용');
+        return useProxyServer(directUrl);
+    }
+
+    return directUrl;
+}
+
+// Google Drive URL 처리
+function processGoogleDriveUrl(url) {
+    // Google Drive 파일 ID 추출
+    let fileId = null;
+
+    // 다양한 Google Drive URL 형식 처리
+    const patterns = [
+        /\/file\/d\/([a-zA-Z0-9-_]+)/,
+        /id=([a-zA-Z0-9-_]+)/,
+        /\/open\?id=([a-zA-Z0-9-_]+)/
+    ];
+
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) {
+            fileId = match[1];
+            break;
+        }
+    }
+
+    if (fileId) {
+        // Google Drive 직접 다운로드 URL로 변환
+        const directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        console.log('Google Drive URL 변환:', directUrl);
+        showToast('Google Drive 비디오를 로드합니다...');
+        return directUrl;
+    }
+
+    return url;
+}
+
+// YouTube 직접 URL 추출 (제한적)
+function extractYouTubeDirectUrl(url) {
+    const videoId = extractYouTubeId(url);
+    if (videoId) {
+        // YouTube는 직접 비디오 파일 접근이 매우 제한적
+        // 대안 제시
+        const message = `YouTube 비디오는 저작권 보호로 직접 추출이 제한됩니다.\n\n` +
+                       `대안:\n` +
+                       `1. YouTube 다운로더 서비스 이용 (y2mate, savefrom 등)\n` +
+                       `2. 다운로드한 파일을 업로드\n` +
+                       `3. 화면 녹화 도구 사용\n\n` +
+                       `비디오 ID: ${videoId}`;
+        throw new Error(message);
+    }
+    return url;
+}
+
+// YouTube ID 추출
+function extractYouTubeId(url) {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+// Vimeo 직접 URL 추출 (제한적)
+function extractVimeoDirectUrl(url) {
+    // Vimeo도 직접 접근이 제한됨
+    throw new Error('Vimeo 비디오는 직접 다운로드가 제한됩니다. 비디오 파일의 직접 URL을 사용해주세요.');
+}
+
+// 직접 비디오 URL인지 확인
+function isDirectVideoUrl(url) {
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v'];
+    const urlLower = url.toLowerCase();
+    return videoExtensions.some(ext => urlLower.includes(ext));
+}
+
+// 프록시 서버 사용 (CORS 우회)
+function useProxyServer(url) {
+    // 로컬 프록시 서버 확인 (개발 환경)
+    const localProxy = `http://localhost:3001/proxy?url=${encodeURIComponent(url)}`;
+
+    // 로컬 프록시 서버가 실행 중인지 확인
+    fetch(localProxy, { method: 'HEAD' })
+        .then(() => {
+            console.log('로컬 프록시 서버 사용:', localProxy);
+            return localProxy;
+        })
+        .catch(() => {
+            // 로컬 프록시가 없으면 공개 프록시 사용
+            // cors-anywhere는 제한이 있으므로 allorigins 사용
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            console.warn('공개 프록시 서버 사용:', proxyUrl);
+            showToast('CORS 우회를 위해 프록시 서버를 사용합니다. 로딩이 느릴 수 있습니다.');
+            return proxyUrl;
+        });
+
+    // 기본적으로 allorigins 프록시 사용
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    console.warn('프록시 서버를 통한 접근:', proxyUrl);
+    showToast('CORS 우회를 위해 프록시 서버를 사용합니다.');
+
+    return proxyUrl;
+}
+
+// URL에서 파일명 추출
+function getFileNameFromUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        const fileName = pathname.split('/').pop() || 'video';
+        return fileName.split('?')[0]; // 쿼리 파라미터 제거
+    } catch (_) {
+        return 'video';
+    }
 }
 
 // 비디오 정보 업데이트
