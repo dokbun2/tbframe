@@ -768,9 +768,13 @@ function setupLightboxEvents() {
 // 라이트박스 열기
 function openLightbox(frameData) {
     const index = extractedFrames.findIndex(f => f.id === frameData.id);
-    if (index === -1) return;
+    if (index === -1) {
+        console.error('Frame not found in extractedFrames array');
+        return;
+    }
 
     currentLightboxIndex = index;
+    console.log('Opening lightbox for frame at index:', index, 'with time:', frameData.time);
     updateLightboxContent();
     elements.lightbox.classList.add('show');
     lucide.createIcons();
@@ -784,11 +788,23 @@ function closeLightbox() {
 
 // 라이트박스 콘텐츠 업데이트
 function updateLightboxContent() {
-    if (currentLightboxIndex < 0 || currentLightboxIndex >= extractedFrames.length) return;
+    if (currentLightboxIndex < 0 || currentLightboxIndex >= extractedFrames.length) {
+        console.error('Invalid lightbox index:', currentLightboxIndex);
+        return;
+    }
 
     const frameData = extractedFrames[currentLightboxIndex];
+    console.log('Updating lightbox with frame data:', frameData);
+
     elements.lightboxImage.src = frameData.url;
-    elements.lightboxTime.textContent = `프레임 시간: ${formatTime(frameData.time)}`;
+
+    // 프레임 시간 텍스트 업데이트
+    const timeText = `프레임 시간: ${formatTime(frameData.time)}`;
+    console.log('Setting time text:', timeText);
+    elements.lightboxTime.textContent = timeText;
+
+    // DOM 요소가 제대로 업데이트되었는지 확인
+    console.log('Lightbox time element content:', elements.lightboxTime.textContent);
 
     // 이전/다음 버튼 상태 업데이트
     elements.lightboxPrev.disabled = currentLightboxIndex === 0;
