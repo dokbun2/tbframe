@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>툴비프레임추출기</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header-top">
+            <button class="close-btn">×</button>
+            <h2>툴비프레임추출기</h2>
+            <p class="subtitle">프레임을 추출해서 영상을 만드세요</p>
+        </div>
+
+        <!-- 메인 컨텐츠 영역 (좌우 분할) -->
+        <div class="main-content">
+            <!-- 좌측 패널: 비디오 업로드 및 컨트롤 -->
+            <div class="left-panel">
+                <!-- 비디오 업로드 영역 -->
+                <div id="uploadArea" class="upload-area">
+                <div class="upload-icon">📹</div>
+                <p class="upload-text">비디오를 드래그하거나 클릭하여 업로드</p>
+                <input type="file" id="videoInput" accept="video/*" hidden>
+
+                <!-- URL 입력 영역 -->
+                <div class="url-input-section">
+                    <div class="divider">
+                        <span>또는</span>
+                    </div>
+                    <div class="url-input-container">
+                        <input type="text" id="urlInput" class="url-input" placeholder="비디오 URL을 입력하세요 (예: https://example.com/video.mp4)">
+                        <button id="loadUrlBtn" class="btn-url-load">URL 로드</button>
+                    </div>
+                    <p class="url-help-text">Dropbox, Google Drive, 직접 비디오 파일 URL 지원 (YouTube는 제한됨)</p>
+                </div>
+            </div>
+
+            <!-- 비디오 플레이어 -->
+            <div id="videoContainer" class="video-container" style="display: none;">
+                <video id="videoPlayer" controls></video>
+                <canvas id="frameCanvas" style="display: none;"></canvas>
+            </div>
+
+            <!-- 컨트롤 패널 -->
+            <div id="controlPanel" class="control-panel" style="display: none;">
+                <div class="control-group">
+                    <label>추출 간격</label>
+                    <div class="button-group">
+                        <button class="interval-btn active" data-interval="0.1">0.1초</button>
+                        <button class="interval-btn" data-interval="0.5">0.5초</button>
+                        <button class="interval-btn" data-interval="1">1초</button>
+                        <button class="interval-btn" data-interval="2">2초</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>이미지 포맷</label>
+                    <div class="button-group">
+                        <button class="format-btn active" data-format="png">PNG</button>
+                        <button class="format-btn" data-format="jpeg">JPG</button>
+                        <button class="format-btn" data-format="webp">WebP</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>업스케일링</label>
+                    <div class="button-group">
+                        <button class="scale-btn active" data-scale="1">원본</button>
+                        <button class="scale-btn" data-scale="2">2배</button>
+                        <button class="scale-btn" data-scale="4">4배</button>
+                    </div>
+                    <small class="scale-note">해상도를 증가시켜 더 선명한 이미지 생성</small>
+                </div>
+
+                <div class="extraction-info">
+                    <div class="info-item">
+                        <span class="info-label">비디오 길이:</span>
+                        <span id="videoDuration">0초</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">예상 프레임 수:</span>
+                        <span id="estimatedFrames">0개</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="extractCurrentBtn" class="btn btn-secondary">
+                        현재 프레임 추출
+                    </button>
+                    <button id="extractAllBtn" class="btn btn-primary">
+                        전체 프레임 추출
+                    </button>
+                </div>
+            </div>
+
+            <!-- 진행률 표시 -->
+            <div id="progressArea" class="progress-area" style="display: none;">
+                <div class="progress-text">추출 중... <span id="progressPercent">0</span>%</div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="currentFrame">0</span> / <span id="totalFrames">0</span> 프레임
+                </div>
+                <button id="cancelExtractBtn" class="btn btn-secondary" style="margin-top: 10px;">추출 취소</button>
+            </div>
+
+            </div>
+            <!-- 좌측 패널 끝 -->
+
+            <!-- 우측 패널: 추출된 프레임 갤러리 -->
+            <div class="right-panel">
+                <div id="frameGallery" class="frame-gallery">
+                    <div class="gallery-header">
+                        <h3>추출된 프레임 (<span id="frameCount">0</span>)</h3>
+                        <div class="gallery-actions">
+                            <button id="selectAllBtn" class="btn-small">전체 선택</button>
+                            <button id="deleteSelectedBtn" class="btn-small">선택 삭제</button>
+                            <button id="downloadAllBtn" class="btn-small btn-primary">모두 다운로드</button>
+                        </div>
+                    </div>
+                    <div id="frameGrid" class="frame-grid"></div>
+
+                    <!-- 프레임이 없을 때 표시할 플레이스홀더 -->
+                    <div id="emptyGallery" class="empty-gallery">
+                        <div class="empty-icon">🖼️</div>
+                        <p>추출된 프레임이 여기에 표시됩니다</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 우측 패널 끝 -->
+        </div>
+        <!-- 메인 컨텐츠 영역 끝 -->
+
+        <!-- 푸터 -->
+        <div class="footer">
+            <p>© Made by TOOLBEE</p>
+        </div>
+    </div>
+
+    <!-- 알림 토스트 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

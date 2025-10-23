@@ -4,130 +4,220 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>툴비프레임추출기</title>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <button class="close-btn">×</button>
-
-            <div class="header">
-                <h2>툴비프레임추출기</h2>
-                <p class="subtitle">프레임을 추출해서 영상을 만드세요</p>
-            </div>
-
-            <!-- 비디오 업로드 영역 -->
-            <div id="uploadArea" class="upload-area">
-                <div class="upload-icon">📹</div>
-                <p class="upload-text">비디오를 드래그하거나 클릭하여 업로드</p>
-                <input type="file" id="videoInput" accept="video/*" hidden>
-
-                <!-- URL 입력 영역 -->
-                <div class="url-input-section">
-                    <div class="divider">
-                        <span>또는</span>
-                    </div>
-                    <div class="url-input-container">
-                        <input type="text" id="urlInput" class="url-input" placeholder="비디오 URL을 입력하세요 (예: https://example.com/video.mp4)">
-                        <button id="loadUrlBtn" class="btn-url-load">URL 로드</button>
-                    </div>
-                    <p class="url-help-text">Dropbox, Google Drive, 직접 비디오 파일 URL 지원 (YouTube는 제한됨)</p>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <button class="btn-icon-ghost" id="closeBtn">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+                <div class="header-title">
+                    <h1>툴비프레임추출기</h1>
                 </div>
             </div>
+        </header>
 
-            <!-- 비디오 플레이어 -->
-            <div id="videoContainer" class="video-container" style="display: none;">
-                <video id="videoPlayer" controls></video>
-                <canvas id="frameCanvas" style="display: none;"></canvas>
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Left Panel -->
+            <div class="panel panel-left">
+                <!-- Upload Section -->
+                <div class="card" id="uploadCard">
+                    <div class="upload-area" id="uploadArea">
+                        <i data-lucide="video" class="upload-icon"></i>
+                        <p class="upload-text">비디오를 드래그하거나 클릭하여 업로드</p>
+                        <input type="file" id="videoInput" accept="video/*" hidden>
+                    </div>
+
+                    <!-- URL Input Section -->
+                    <div class="url-section">
+                        <div class="divider">
+                            <span>또는</span>
+                        </div>
+                        <div class="url-input-group">
+                            <input
+                                type="text"
+                                id="urlInput"
+                                class="input"
+                                placeholder="비디오 URL을 입력하세요"
+                            >
+                            <button id="loadUrlBtn" class="btn btn-primary">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                URL 로드
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Player -->
+                <div class="card" id="videoCard" style="display: none;">
+                    <div class="video-container">
+                        <video id="videoPlayer" controls></video>
+                        <canvas id="frameCanvas" style="display: none;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="card" id="controlCard" style="display: none;">
+                    <!-- Controls Row -->
+                    <div class="controls-row">
+                        <!-- Extraction Interval -->
+                        <div class="control-item">
+                            <label class="label-inline">추출 간격</label>
+                            <select id="intervalSelect" class="select">
+                                <option value="0.1" selected>0.1초</option>
+                                <option value="0.5">0.5초</option>
+                                <option value="1">1초</option>
+                                <option value="2">2초</option>
+                            </select>
+                        </div>
+
+                        <!-- Image Format -->
+                        <div class="control-item">
+                            <label class="label-inline">이미지 포맷</label>
+                            <select id="formatSelect" class="select">
+                                <option value="png" selected>PNG</option>
+                                <option value="jpeg">JPG</option>
+                                <option value="webp">WebP</option>
+                            </select>
+                        </div>
+
+                        <!-- Upscaling -->
+                        <div class="control-item">
+                            <label class="label-inline">업스케일링</label>
+                            <select id="scaleSelect" class="select">
+                                <option value="1" selected>원본</option>
+                                <option value="2">2배</option>
+                                <option value="4">4배</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="text-sm text-muted mt-2">해상도를 증가시켜 더 선명한 이미지 생성</p>
+
+                    <!-- Info Display -->
+                    <div class="info-card">
+                        <div class="info-row">
+                            <span class="text-muted">비디오 길이:</span>
+                            <span id="videoDuration">0:00</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="text-muted">예상 프레임 수:</span>
+                            <span id="estimatedFrames">0개</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button id="extractCurrentBtn" class="btn btn-secondary">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                            현재 프레임
+                        </button>
+                        <button id="extractAllBtn" class="btn btn-primary">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                            전체 프레임 추출
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div class="card" id="progressCard" style="display: none;">
+                    <div class="progress-content">
+                        <div class="progress-header">
+                            <span>추출 중...</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <div class="progress-info">
+                            <span class="text-sm text-muted">
+                                <span id="currentFrame">0</span> / <span id="totalFrames">0</span> 프레임
+                            </span>
+                        </div>
+                        <button id="cancelExtractBtn" class="btn btn-secondary mt-4">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                            취소
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- 컨트롤 패널 -->
-            <div id="controlPanel" class="control-panel" style="display: none;">
-                <div class="control-group">
-                    <label>추출 간격</label>
-                    <div class="button-group">
-                        <button class="interval-btn active" data-interval="0.1">0.1초</button>
-                        <button class="interval-btn" data-interval="0.5">0.5초</button>
-                        <button class="interval-btn" data-interval="1">1초</button>
-                        <button class="interval-btn" data-interval="2">2초</button>
+            <!-- Right Panel -->
+            <div class="panel panel-right">
+                <div class="card h-full">
+                    <!-- Gallery Header -->
+                    <div class="gallery-header">
+                        <h2 class="text-lg font-semibold">
+                            추출된 프레임 (<span id="frameCount">0</span>)
+                        </h2>
+                        <div class="gallery-actions">
+                            <button id="selectAllBtn" class="btn btn-ghost btn-sm">
+                                <i data-lucide="check-square" class="w-4 h-4"></i>
+                                전체 선택
+                            </button>
+                            <button id="deleteSelectedBtn" class="btn btn-ghost btn-sm">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                선택 삭제
+                            </button>
+                            <button id="downloadAllBtn" class="btn btn-primary btn-sm">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                모두 다운로드
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="control-group">
-                    <label>이미지 포맷</label>
-                    <div class="button-group">
-                        <button class="format-btn active" data-format="png">PNG</button>
-                        <button class="format-btn" data-format="jpeg">JPG</button>
-                        <button class="format-btn" data-format="webp">WebP</button>
-                    </div>
-                </div>
+                    <!-- Frame Grid -->
+                    <div id="frameGrid" class="frame-grid"></div>
 
-                <div class="control-group">
-                    <label>업스케일링</label>
-                    <div class="button-group">
-                        <button class="scale-btn active" data-scale="1">원본</button>
-                        <button class="scale-btn" data-scale="2">2배</button>
-                        <button class="scale-btn" data-scale="4">4배</button>
+                    <!-- Empty State -->
+                    <div id="emptyGallery" class="empty-state">
+                        <i data-lucide="image" class="empty-icon"></i>
+                        <p class="text-muted">추출된 프레임이 여기에 표시됩니다</p>
                     </div>
-                    <small class="scale-note">해상도를 증가시켜 더 선명한 이미지 생성</small>
-                </div>
-
-                <div class="extraction-info">
-                    <div class="info-item">
-                        <span class="info-label">비디오 길이:</span>
-                        <span id="videoDuration">0초</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">예상 프레임 수:</span>
-                        <span id="estimatedFrames">0개</span>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button id="extractCurrentBtn" class="btn btn-secondary">
-                        현재 프레임 추출
-                    </button>
-                    <button id="extractAllBtn" class="btn btn-primary">
-                        전체 프레임 추출
-                    </button>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <!-- 진행률 표시 -->
-            <div id="progressArea" class="progress-area" style="display: none;">
-                <div class="progress-text">추출 중... <span id="progressPercent">0</span>%</div>
-                <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill"></div>
-                </div>
-                <div class="progress-info">
-                    <span id="currentFrame">0</span> / <span id="totalFrames">0</span> 프레임
-                </div>
-                <button id="cancelExtractBtn" class="btn btn-secondary" style="margin-top: 10px;">추출 취소</button>
-            </div>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
-            <!-- 추출된 프레임 갤러리 -->
-            <div id="frameGallery" class="frame-gallery" style="display: none;">
-                <div class="gallery-header">
-                    <h3>추출된 프레임 (<span id="frameCount">0</span>)</h3>
-                    <div class="gallery-actions">
-                        <button id="selectAllBtn" class="btn-small">전체 선택</button>
-                        <button id="deleteSelectedBtn" class="btn-small">선택 삭제</button>
-                        <button id="downloadAllBtn" class="btn-small btn-primary">모두 다운로드</button>
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="lightbox">
+        <div class="lightbox-content">
+            <button class="lightbox-close" id="lightboxClose">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <div class="lightbox-image-container">
+                <img id="lightboxImage" src="" alt="">
+                <div class="lightbox-info">
+                    <span id="lightboxTime" class="lightbox-time"></span>
+                    <div class="lightbox-actions">
+                        <button id="lightboxDownload" class="btn btn-primary btn-sm">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            다운로드
+                        </button>
                     </div>
                 </div>
-                <div id="frameGrid" class="frame-grid"></div>
             </div>
-
-            <!-- 푸터 -->
-            <div class="footer">
-                <p>© Made by TOOLBEE</p>
-            </div>
+            <button class="lightbox-nav lightbox-prev" id="lightboxPrev">
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
+            </button>
+            <button class="lightbox-nav lightbox-next" id="lightboxNext">
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
+            </button>
         </div>
     </div>
 
-    <!-- 알림 토스트 -->
-    <div id="toast" class="toast"></div>
-
+    <!-- Scripts -->
     <script src="./script.js"></script>
 </body>
 </html>
