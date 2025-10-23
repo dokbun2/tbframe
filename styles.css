@@ -223,12 +223,15 @@ body {
 }
 
 .btn-primary {
-    background: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    border: 1px solid var(--border);
 }
 
 .btn-primary:hover {
-    opacity: 0.9;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
 }
 
 .btn-secondary {
@@ -238,16 +241,21 @@ body {
 }
 
 .btn-secondary:hover {
-    background: var(--accent);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
 }
 
 .btn-ghost {
     background: transparent;
     color: var(--foreground);
+    border: 1px solid var(--border);
 }
 
 .btn-ghost:hover {
-    background: var(--accent);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
 }
 
 .btn-icon-ghost {
@@ -419,7 +427,7 @@ body {
     gap: 0.75rem;
 }
 
-.action-buttons .btn {
+.action-buttons .btn:not(.btn-ghost) {
     flex: 1;
 }
 

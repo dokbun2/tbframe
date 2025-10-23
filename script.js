@@ -55,7 +55,7 @@ function cacheElements() {
         selectAllBtn: document.getElementById('selectAllBtn'),
         deleteSelectedBtn: document.getElementById('deleteSelectedBtn'),
         downloadAllBtn: document.getElementById('downloadAllBtn'),
-        closeBtn: document.getElementById('closeBtn'),
+        resetBtn: document.getElementById('resetBtn'),
         // Select dropdowns
         intervalSelect: document.getElementById('intervalSelect'),
         formatSelect: document.getElementById('formatSelect'),
@@ -106,8 +106,10 @@ function setupEventListeners() {
     // 라이트박스 이벤트
     setupLightboxEvents();
 
-    // 닫기 버튼
-    elements.closeBtn.addEventListener('click', resetAll);
+    // 새로고침 버튼
+    if (elements.resetBtn) {
+        elements.resetBtn.addEventListener('click', resetAll);
+    }
 }
 
 // 드래그 앤 드롭 설정
@@ -683,7 +685,8 @@ function getFileNameFromUrl(url) {
 
 // 유틸리티 함수
 function formatTime(seconds) {
-    if (!seconds || isNaN(seconds)) return '0:00';
+    if (isNaN(seconds) || seconds === null || seconds === undefined) return '0:00';
+    // 0초도 올바르게 처리
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
@@ -768,13 +771,9 @@ function setupLightboxEvents() {
 // 라이트박스 열기
 function openLightbox(frameData) {
     const index = extractedFrames.findIndex(f => f.id === frameData.id);
-    if (index === -1) {
-        console.error('Frame not found in extractedFrames array');
-        return;
-    }
+    if (index === -1) return;
 
     currentLightboxIndex = index;
-    console.log('Opening lightbox for frame at index:', index, 'with time:', frameData.time);
     updateLightboxContent();
     elements.lightbox.classList.add('show');
     lucide.createIcons();
@@ -788,27 +787,24 @@ function closeLightbox() {
 
 // 라이트박스 콘텐츠 업데이트
 function updateLightboxContent() {
-    if (currentLightboxIndex < 0 || currentLightboxIndex >= extractedFrames.length) {
-        console.error('Invalid lightbox index:', currentLightboxIndex);
-        return;
-    }
+    if (currentLightboxIndex < 0 || currentLightboxIndex >= extractedFrames.length) return;
 
     const frameData = extractedFrames[currentLightboxIndex];
-    console.log('Updating lightbox with frame data:', frameData);
-
     elements.lightboxImage.src = frameData.url;
 
-    // 프레임 시간 텍스트 업데이트
-    const timeText = `프레임 시간: ${formatTime(frameData.time)}`;
-    console.log('Setting time text:', timeText);
-    elements.lightboxTime.textContent = timeText;
-
-    // DOM 요소가 제대로 업데이트되었는지 확인
-    console.log('Lightbox time element content:', elements.lightboxTime.textContent);
+    // 프레임 시간 텍스트 업데이트 - 안전하게 처리
+    if (elements.lightboxTime) {
+        const time = frameData.time || 0;
+        elements.lightboxTime.textContent = `프레임 시간: ${formatTime(time)}`;
+    }
 
     // 이전/다음 버튼 상태 업데이트
-    elements.lightboxPrev.disabled = currentLightboxIndex === 0;
-    elements.lightboxNext.disabled = currentLightboxIndex === extractedFrames.length - 1;
+    if (elements.lightboxPrev) {
+        elements.lightboxPrev.disabled = currentLightboxIndex === 0;
+    }
+    if (elements.lightboxNext) {
+        elements.lightboxNext.disabled = currentLightboxIndex === extractedFrames.length - 1;
+    }
 }
 
 // 이전 이미지 표시
