@@ -1073,18 +1073,16 @@ body {
 
 /* Ad Panel (Right Side) */
 .panel-ad {
-    width: 160px;
-    min-width: 160px;
-    padding: 0.75rem;
+    width: 176px;
+    min-width: 176px;
+    padding: 0.5rem;
     border-left: 1px solid var(--border);
     background: var(--card);
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-
-.panel-ad .adsbygoogle {
-    min-height: 600px;
+    justify-content: flex-start;
+    padding-top: 1rem;
 }
 
 @media (max-width: 1280px) {
