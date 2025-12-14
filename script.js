@@ -727,6 +727,13 @@ function resetAll() {
     showToast('초기화되었습니다.');
 }
 
+// 터치 스와이프 상태
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+const SWIPE_THRESHOLD = 50;
+
 // 라이트박스 이벤트 설정
 function setupLightboxEvents() {
     // 닫기 버튼
@@ -766,6 +773,58 @@ function setupLightboxEvents() {
                 break;
         }
     });
+
+    // 터치 스와이프 이벤트 (모바일)
+    setupTouchSwipe();
+}
+
+// 터치 스와이프 설정
+function setupTouchSwipe() {
+    const lightboxContent = elements.lightbox.querySelector('.lightbox-content');
+    if (!lightboxContent) return;
+
+    lightboxContent.addEventListener('touchstart', handleTouchStart, { passive: true });
+    lightboxContent.addEventListener('touchmove', handleTouchMove, { passive: true });
+    lightboxContent.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+
+function handleTouchStart(e) {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}
+
+function handleTouchMove(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+}
+
+function handleTouchEnd(e) {
+    if (!elements.lightbox.classList.contains('show')) return;
+
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // 수평 스와이프가 수직보다 크고 임계값을 넘으면
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+        if (deltaX > 0) {
+            // 오른쪽 스와이프 → 이전 이미지
+            showPrevImage();
+        } else {
+            // 왼쪽 스와이프 → 다음 이미지
+            showNextImage();
+        }
+    }
+
+    // 아래로 스와이프 → 닫기
+    if (deltaY > SWIPE_THRESHOLD * 2 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        closeLightbox();
+    }
+
+    // 리셋
+    touchStartX = 0;
+    touchStartY = 0;
+    touchEndX = 0;
+    touchEndY = 0;
 }
 
 // 라이트박스 열기
